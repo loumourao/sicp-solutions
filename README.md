@@ -1,0 +1,1 @@
+This repository serves as backup and playground for the addition of my solutions, implemented in Racket, for the SICP book exercises
