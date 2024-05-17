@@ -43,7 +43,7 @@ which I assume the interpreter would print if one were to execute them
    (* 3 (- 6 2) (- 2 7)))
 
 ;Exercise 1.3
-(define (exercise_1.3 a b c)
+(define (exercise_3 a b c)
     (define (square_sum a b)
         (+ (* a a) (* b b)))
 
@@ -199,3 +199,186 @@ even more accurate, as we can observe in the following code blocks
 (cube_root 125)
 (cube_root 0.00000001337)
 (cube_root 9284756651928)
+
+#|
+Exercise 1.9
+Let us illustrate the first and second process following the substitution model for (+ 4 5)
+First process:
+(+ 4 5)
+(inc (+ 3 5))
+(inc (inc (+ 2 5)))
+(inc (inc (inc (+ 1 5))))
+(inc (inc (inc (inc (+ 0 5)))))
+(inc (inc (inc (inc 5))))
+(inc (inc (inc 6)))
+(inc (inc 7))
+(inc 8)
+9
+
+Second process:
+(+ 4 5)
+(+ 3 6)
+(+ 2 7)
+(+ 1 8)
+(+ 0 9)
+9
+
+Procedurally/functionally speaking, both these procedures are recursive - has both bodies 
+include a call to their corresponding definition. However, the same can't be said about the process 
+that they generate. As we can observe through the illustrations, the first process is recursive, 
+whilst the second one is iterative - this has to do with the fact that, setting aside time complexity 
+(which is linear for both processes), if one were to focus on space complexity, the first 
+process is linear and the second is constant, thus making the first process recursive and the second
+process iterative; in other words, the first process plays a much greater impact in memory than the 
+second process.
+|#
+
+#|
+Exercise 1.10
+Following the substitution model, we can see that (A 1 10) translates into a recursive process that 
+fully expands in the following manner (A 0 (A 1 9)) -> (A 0 (A 0 (A 1 8))) -> ... -> (A 0 (A 0 (... (A 1 1)))). 
+This is composed of 10 calls (counting with (A 1 1)). Since (A 1 1) outputs 2, we are now left with 
+(A 0 (A 0 (... (A 0 2)))); now, whichever call whose first parameter equals 0, the output corresponds to the double of 
+the second parameter, thus (A 0 2) = 4. Fully contracting this expansion, we can see that this follows
+a pattern of 2^n, with n = 10. As such, the result is 2^10 = 1024.
+
+For the second call, we can observe the same process, but with a slight difference. The difference lies
+in the following case - instead of starting with (A 1 x), we now start with (A 2 4), which expands
+differently in the first few steps: (A 1 (A 2 3)) -> (A 1 (A 1 (A 2 2))) -> (A 1 (A 1 (A 1 (A 2 1)))) ->
+(A 1 (A 1 (A 1 (A 1 2)))) -> (A 1 (A 1 (A 0 2))) -> ... -> (A 1 (A 1 4)) -> following the same process
+as shown above until it fully contracts. What we can observe here is that this follows the same pattern
+as above, but performed in a "batch-wise" manner; that is, we first expand and reduce 2^2, resulting in 
+(A 1 (A 1 4)), followed by a new expansion and reduction that makes use of the previous batch of operations, 
+resulting in 2^4, followed by (A 1 (A 0 8)) -> (A 1 16), thus culminating, once again,
+in 2^n calls, with n = 16. As such, the result is 2^16 = 65535
+
+For the third call, such is not as trivial as the previous examples, and, for the sake of simplicity,
+we will refrain from presenting a manual expansion and reduction and present only the final result. 
+
+To summarize, we obtain the following answers:
+(A 1 10) = 2^10    = 1024
+(A 2 4)  = 2^(2^(2^2)) = 2^16 = 65535
+(A 3 3)  = 65535
+
+We will now confirm these observations by defining this procedure followed by corresponding calls 
+comprised of the aforementioned parameters
+|#
+
+(define (A x y)
+    (cond ((= y 0) 0)
+          ((= x 0) (* 2 y))
+          ((= y 1) 2)
+          (else (A (- x 1)
+                   (A x (- y 1))))))
+
+(A 1 10)
+
+(A 2 4)
+
+(A 3 3)
+
+(A 4 2)
+
+#|
+Considering the new expressions:
+(define (f n) (A 0 n))
+(define (g n) (A 1 n))
+(define (h n) (A 2 n))
+(define (k n) (* 5 n n))
+
+And applying the processes which have previously been deconstructed, we are now capable of translating 
+these procedures into compact mathematical notations, as follows:
+f(n) = 2 * n
+g(n) = 2^n
+h(n) = 2^(h(n-1))
+k(n) = 5 * (n^2)
+
+P.S.: For those who are curious, the Ackermann function has little to no practical use and is often 
+found within theoretical studies concerning computational complexity due to its rapid growth! 
+(e.g., used as benchmark for a compiler's ability to optimize recursive processes)
+|#
+
+#|
+Exercise 1.11
+The following procedures will implement the intended function following recursive and iterative 
+processes, respectively, together with corresponding tests
+|#
+
+(define (f_recursive n)
+    (cond ((< n 3) n)
+          (else (+ (f_recursive (- n 1))
+                    (* 2 (f_recursive (- n 2)))
+                    (* 3 (f_recursive (- n 3)))))))
+
+(f_recursive 0)
+(f_recursive 1)
+(f_recursive 2)
+(f_recursive 3)
+(f_recursive 4)
+(f_recursive 5)
+(f_recursive 6)
+
+(define (f_iterative n)
+    (define (get_accumulation a b c)
+        (+ a (* 2 b) (* 3 c)))
+
+    (define (f_iterative_aux counter prior second_prior third_prior)
+        (cond ((< n 3) n)
+              ((= counter n) (get_accumulation prior second_prior third_prior))
+              (else (f_iterative_aux (+ counter 1)
+                                     (get_accumulation prior second_prior third_prior)
+                                     prior
+                                     second_prior
+                                     ))))
+
+    (f_iterative_aux 3 2 1 0))
+
+(f_iterative 0)
+(f_iterative 1)
+(f_iterative 2)
+(f_iterative 3)
+(f_iterative 4)
+(f_iterative 5)
+(f_iterative 6)
+
+#|
+For a comparison measure regarding the efficiency of both implementations, we can observe the
+impact that space complexity and, consequently, time complexity have in processing the following 
+two calls pertaining to the iterative and recursive strategy, respectively. Whilst less user-friendly 
+when code comprehension is concerned, it is obvious that the former is much more efficient than the 
+latter. Furthermore, it is possible to further optimize the recursive process by resorting to 
+techniques such as memoization. Memoization is a technique that is commonly applied in recursive 
+scenarios where recursive trees expand mulitple sub-trees that have already been expanded before. It is 
+applied in such a way that stores previously calculated values in an accessaible table - for lookup 
+and fetch purposes - so as to prevent unnecessary recalculations, thus mitigating the recalculation of 
+already expanded sub-trees and drastically diminishing the overhead related to these processes.
+|#
+
+(f_iterative 999)
+(f_recursive 999)
+
+;Exercise 1.12
+(define (pascal_triangle n)
+    (define (recursive_pascal row column)
+        (cond ((or (= column 0)
+                   (= column row)) 1)
+              (else (+ (recursive_pascal (- row 1) (- column 1))
+                       (recursive_pascal (- row 1) column)))))
+    
+    (define (print_pascal row_counter column_counter)
+        (cond ((= row_counter n) (void))
+              ((> column_counter row_counter) (display "\n")
+                                              (print_pascal (+ row_counter 1) 0))
+              (else (display (recursive_pascal row_counter column_counter))
+                    (display " ")
+                    (print_pascal row_counter (+ column_counter 1)))))
+    
+    (print_pascal 0 0))
+
+(pascal_triangle 1)
+(pascal_triangle 2)
+(pascal_triangle 3)
+(pascal_triangle 4)
+(pascal_triangle 5)
+(pascal_triangle 6)
+(pascal_triangle 11)
